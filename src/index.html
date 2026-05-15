@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>i18n 检查工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="titlebar" data-tauri-drag-region>
+    <span class="title-text">i18n 检查工具</span>
+  </div>
+
+  <div id="toolbar">
+    <div id="path-display" title="">未配置项目路径</div>
+    <div class="toolbar-actions">
+      <button id="btn-scan" class="btn-primary" disabled>扫描</button>
+      <button id="btn-settings" class="btn-ghost">设置</button>
+    </div>
+  </div>
+
+  <!-- Settings panel -->
+  <div id="settings-panel" class="hidden">
+    <div class="settings-row">
+      <label for="input-project-path">项目路径</label>
+      <input id="input-project-path" type="text" placeholder="/path/to/webclaw-launcher-tauri">
+      <button id="btn-browse" class="btn-ghost">浏览…</button>
+    </div>
+    <div class="settings-actions">
+      <button id="btn-save-settings" class="btn-primary">保存设置</button>
+      <button id="btn-cancel-settings" class="btn-ghost">取消</button>
+    </div>
+  </div>
+
+  <!-- Locale summary bar -->
+  <div id="locale-bar" class="hidden">
+    <span class="locale-bar-label">已加载语言：</span>
+    <span id="locale-chips"></span>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs" class="hidden">
+    <button class="tab-btn active" data-tab="hardcoded">
+      硬编码字符串
+      <span class="badge" id="badge-hardcoded">0</span>
+    </button>
+    <button class="tab-btn" data-tab="missing">
+      缺失翻译
+      <span class="badge" id="badge-missing">0</span>
+    </button>
+    <button class="tab-btn" data-tab="wrong">
+      语言错误
+      <span class="badge badge-warn" id="badge-wrong">0</span>
+    </button>
+  </div>
+
+  <!-- Tab: hardcoded -->
+  <div id="tab-hardcoded" class="tab-pane hidden">
+    <div class="pane-toolbar">
+      <input id="filter-hardcoded" class="filter-input" placeholder="搜索文件名或内容…">
+      <span class="count-label" id="hardcoded-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">文件</th>
+            <th style="width:60px">行号</th>
+            <th style="width:200px">中文内容</th>
+            <th>代码上下文</th>
+          </tr>
+        </thead>
+        <tbody id="hardcoded-body"></tbody>
+      </table>
+      <div class="empty-state hidden" id="hardcoded-empty">
+        <div class="empty-icon">✓</div>
+        <div>未发现硬编码中文字符串</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: missing translations -->
+  <div id="tab-missing" class="tab-pane hidden">
+    <div class="pane-toolbar">
+      <select id="filter-missing-locale" class="filter-select">
+        <option value="">所有缺失语言</option>
+      </select>
+      <input id="filter-missing-key" class="filter-input" placeholder="搜索键名或内容…" style="flex:1">
+      <span class="count-label" id="missing-count"></span>
+      <button id="btn-fix-missing" class="btn-primary" disabled>批量补全空白键</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px"><input type="checkbox" id="check-all-missing"></th>
+            <th style="width:220px">键名</th>
+            <th style="width:200px">中文值</th>
+            <th style="width:200px">英文值</th>
+            <th>缺失语言</th>
+          </tr>
+        </thead>
+        <tbody id="missing-body"></tbody>
+      </table>
+      <div class="empty-state hidden" id="missing-empty">
+        <div class="empty-icon">✓</div>
+        <div>所有键均已在各语言中配置</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: wrong language -->
+  <div id="tab-wrong" class="tab-pane hidden">
+    <div class="pane-toolbar">
+      <select id="filter-wrong-locale" class="filter-select">
+        <option value="">所有语言</option>
+      </select>
+      <select id="filter-wrong-type" class="filter-select">
+        <option value="">所有问题类型</option>
+        <option value="same_as_english">与英文相同</option>
+        <option value="contains_chinese">含中文字符</option>
+      </select>
+      <span class="count-label" id="wrong-count"></span>
+      <button id="btn-fix-wrong-all" class="btn-warn" disabled>清空当前筛选的错误值</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px">语言</th>
+            <th style="width:200px">键名</th>
+            <th>当前值（错误）</th>
+            <th>英文参考值</th>
+            <th style="width:100px">问题类型</th>
+            <th style="width:70px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="wrong-body"></tbody>
+      </table>
+      <div class="empty-state hidden" id="wrong-empty">
+        <div class="empty-icon">✓</div>
+        <div>未发现语言配置错误</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log panel -->
+  <div id="log-panel">
+    <div id="log-toggle" class="log-header">
+      <span>操作日志</span>
+      <span id="log-arrow">▲</span>
+    </div>
+    <div id="log-content"></div>
+  </div>
+
+  <!-- Scanning overlay -->
+  <div id="scan-overlay" class="hidden">
+    <div class="scan-spinner"></div>
+    <div class="scan-text">正在扫描…</div>
+  </div>
+
+  <script src="main.js" type="module"></script>
+</body>
+</html>
