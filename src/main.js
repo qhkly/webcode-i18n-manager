@@ -1,6 +1,36 @@
 const { invoke } = window.__TAURI__.core;
 const { open: openDialog } = window.__TAURI__.dialog;
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
+const THEME_CYCLE = ['system', 'light', 'dark'];
+const THEME_ICON  = { system: '💻', light: '☀️', dark: '🌙' };
+const THEME_LABEL = { system: '跟随系统', light: '浅色', dark: '深色' };
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'dark')       root.setAttribute('data-theme', 'dark');
+  else if (theme === 'light') root.setAttribute('data-theme', 'light');
+  else                        root.removeAttribute('data-theme');
+  const btn = document.getElementById('btn-theme');
+  if (btn) { btn.textContent = THEME_ICON[theme]; btn.title = THEME_LABEL[theme]; }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'system';
+  applyTheme(saved);
+  document.getElementById('btn-theme').addEventListener('click', () => {
+    const current = localStorage.getItem('theme') || 'system';
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if ((localStorage.getItem('theme') || 'system') === 'system') applyTheme('system');
+  });
+}
+
+initTheme();
+
 // ─── State ────────────────────────────────────────────────────────────────────
 let settings = { project_path: '' };
 let scanResult = null;
