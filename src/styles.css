@@ -187,9 +187,28 @@ button { cursor: pointer; border: none; border-radius: var(--radius); font-size:
   font-family: inherit;
   outline: none;
 }
-.settings-row input:focus { border-color: var(--accent); }
+.settings-row input:focus,
+.settings-row select:focus { border-color: var(--accent); }
+
+.settings-row select {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-row label[for="input-gemini-key"],
+.settings-row label[for="select-gemini-model"] { width: 110px; }
 
 .settings-actions { display: flex; gap: 8px; }
+
+.settings-row label[for="input-project-path"] { width: 70px; }
 
 /* ─── Locale bar ───────────────────────────────────────────────────── */
 #locale-bar {
@@ -458,3 +477,143 @@ tbody td {
 ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
 input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+
+/* ─── API status chip ───────────────────────────────────────────────── */
+.api-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--bg2);
+  cursor: help;
+  user-select: none;
+}
+.api-status.warn {
+  color: #c97800;
+  border-color: #c97800;
+}
+[data-theme="dark"] .api-status.warn,
+@media (prefers-color-scheme: dark) {
+  .api-status.warn { color: #ffb84d; border-color: #c97800; }
+}
+
+/* ─── Translation progress panel ────────────────────────────────────── */
+.translate-progress {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.translate-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text);
+}
+.translate-progress-bar {
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#translate-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+  width: 0%;
+}
+.translate-log {
+  max-height: 140px;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+}
+.translate-log-line { padding: 1px 0; }
+.translate-log-line.ok   { color: #2ea84a; }
+.translate-log-line.warn { color: #c97800; }
+.translate-log-line.err  { color: #d23f3f; }
+.translate-log-line.info { color: var(--text2); }
+[data-theme="dark"] .translate-log-line.ok,
+@media (prefers-color-scheme: dark) {
+  .translate-log-line.ok { color: #4ec76a; }
+  .translate-log-line.warn { color: #ffb84d; }
+  .translate-log-line.err { color: #ff6b6b; }
+}
+
+.btn-sm { padding: 2px 8px; font-size: 11px; }
+
+/* ─── Hardcoded tab: language filter + kind tag ─────────────────────── */
+.lang-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.lang-filter-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  user-select: none;
+}
+.lang-filter-group .lang-filter-comment {
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.kind-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+.kind-tag.kind-warn {
+  color: #c97800;
+  border-color: #c97800;
+  background: rgba(201, 120, 0, 0.08);
+}
+.kind-tag.kind-mute {
+  opacity: 0.6;
+}
+[data-theme="dark"] .kind-tag.kind-warn,
+@media (prefers-color-scheme: dark) {
+  .kind-tag.kind-warn { color: #ffb84d; border-color: #c97800; }
+}
+
+.cell-file { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
+
+/* ─── Empty hint blurb ──────────────────────────────────────────────── */
+.empty-hint {
+  padding: 8px 12px;
+  margin: 0 0 8px 0;
+  background: var(--bg2);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.empty-hint code {
+  background: var(--bg3);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}

@@ -11,6 +11,13 @@ pub fn run() {
             i18n_scan,
             i18n_add_missing_keys,
             i18n_clear_wrong_value,
+            i18n_translate,
+            i18n_translation_status,
+            i18n_translation_clear_progress,
+            i18n_scan_dead_keys,
+            i18n_scan_antipatterns,
+            i18n_delete_dead_keys,
+            i18n_fix_chinese_fallbacks,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

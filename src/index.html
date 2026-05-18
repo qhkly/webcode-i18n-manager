@@ -14,6 +14,7 @@
   <div id="toolbar">
     <div id="path-display" title="">未配置项目路径</div>
     <div class="toolbar-actions">
+      <span id="api-status" class="api-status" title="" hidden></span>
       <button id="btn-scan" class="btn-primary" disabled>扫描</button>
       <button id="btn-theme" class="btn-ghost" title="切换主题"></button>
       <button id="btn-settings" class="btn-ghost">设置</button>
@@ -26,6 +27,18 @@
       <label for="input-project-path">项目路径</label>
       <input id="input-project-path" type="text" placeholder="/path/to/webclaw-launcher-tauri">
       <button id="btn-browse" class="btn-ghost">浏览…</button>
+    </div>
+    <div class="settings-row">
+      <label for="input-gemini-key">Gemini API Key</label>
+      <input id="input-gemini-key" type="password" placeholder="留空回退: GOOGLE_API_KEYS 环境变量 → 内置默认 key（多 key 逗号分隔）" autocomplete="off">
+    </div>
+    <div class="settings-row">
+      <label for="select-gemini-model">翻译模型</label>
+      <select id="select-gemini-model">
+        <option value="">默认 (gemini-2.5-flash)</option>
+        <option value="gemini-2.5-flash">gemini-2.5-flash（推荐，便宜）</option>
+        <option value="gemini-2.5-pro">gemini-2.5-pro（贵 10×，仅用于难翻译术语）</option>
+      </select>
     </div>
     <div class="settings-actions">
       <button id="btn-save-settings" class="btn-primary">保存设置</button>
@@ -53,20 +66,36 @@
       语言错误
       <span class="badge badge-warn" id="badge-wrong">0</span>
     </button>
+    <button class="tab-btn" data-tab="dead">
+      死键
+      <span class="badge" id="badge-dead">—</span>
+    </button>
+    <button class="tab-btn" data-tab="antipattern">
+      反模式
+      <span class="badge" id="badge-antipattern">—</span>
+    </button>
   </div>
 
   <!-- Tab: hardcoded -->
   <div id="tab-hardcoded" class="tab-pane hidden">
     <div class="pane-toolbar">
       <input id="filter-hardcoded" class="filter-input" placeholder="搜索文件名或内容…">
+      <span class="lang-filter-group" id="lang-filter-group">
+        <label><input type="checkbox" class="lang-filter" value="js" checked> JS</label>
+        <label><input type="checkbox" class="lang-filter" value="html" checked> HTML</label>
+        <label><input type="checkbox" class="lang-filter" value="rust" checked> Rust</label>
+        <label><input type="checkbox" class="lang-filter" value="shell" checked> Shell</label>
+        <label class="lang-filter-comment"><input type="checkbox" id="filter-show-comments"> 含注释</label>
+      </span>
       <span class="count-label" id="hardcoded-count"></span>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th style="width:160px">文件</th>
+            <th style="width:240px">文件</th>
             <th style="width:60px">行号</th>
+            <th style="width:120px">类型</th>
             <th style="width:200px">中文内容</th>
             <th>代码上下文</th>
           </tr>
@@ -88,7 +117,19 @@
       </select>
       <input id="filter-missing-key" class="filter-input" placeholder="搜索键名或内容…" style="flex:1">
       <span class="count-label" id="missing-count"></span>
-      <button id="btn-fix-missing" class="btn-primary" disabled>批量补全空白键</button>
+      <button id="btn-translate-selected" class="btn-primary" disabled title="使用 Gemini 翻译选中的键">翻译选中</button>
+      <button id="btn-translate-locale" class="btn-primary" disabled title="翻译当前筛选语言所有缺失键">翻译此语种全部缺失</button>
+      <button id="btn-fix-missing" class="btn-ghost" disabled>补全为空白</button>
+    </div>
+    <div id="translate-progress" class="translate-progress hidden">
+      <div class="translate-progress-header">
+        <span id="translate-progress-text">准备中…</span>
+        <button id="btn-translate-close" class="btn-ghost btn-sm" title="关闭面板">×</button>
+      </div>
+      <div class="translate-progress-bar">
+        <div id="translate-progress-fill"></div>
+      </div>
+      <div id="translate-log" class="translate-log"></div>
     </div>
     <div class="table-wrap">
       <table>
@@ -122,12 +163,15 @@
         <option value="contains_chinese">含中文字符</option>
       </select>
       <span class="count-label" id="wrong-count"></span>
-      <button id="btn-fix-wrong-all" class="btn-warn" disabled>清空当前筛选的错误值</button>
+      <button id="btn-translate-wrong-selected" class="btn-primary" disabled title="使用 Gemini 重新翻译选中的值">翻译选中</button>
+      <button id="btn-translate-wrong-all" class="btn-primary" disabled title="翻译当前筛选条件下所有错误值">翻译筛选全部</button>
+      <button id="btn-fix-wrong-all" class="btn-ghost" disabled>清空筛选</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th style="width:32px"><input type="checkbox" id="check-all-wrong"></th>
             <th style="width:80px">语言</th>
             <th style="width:200px">键名</th>
             <th>当前值（错误）</th>
@@ -141,6 +185,72 @@
       <div class="empty-state hidden" id="wrong-empty">
         <div class="empty-icon">✓</div>
         <div>未发现语言配置错误</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: dead keys -->
+  <div id="tab-dead" class="tab-pane hidden">
+    <div class="pane-toolbar">
+      <input id="filter-dead" class="filter-input" placeholder="搜索键名或中文值…" style="flex:1">
+      <span class="count-label" id="dead-count"></span>
+      <button id="btn-scan-dead" class="btn-primary">扫描死键</button>
+      <button id="btn-delete-dead" class="btn-warn" disabled>删除选中</button>
+    </div>
+    <div class="empty-hint">
+      死键 = zh-CN 中存在但代码里没引用的键。带 <code>${'${...}'}</code> 模板拼接的动态键会启发式跳过（按前缀匹配）。删除前自动备份到 <code>.i18n-backup/</code>。
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px"><input type="checkbox" id="check-all-dead"></th>
+            <th style="width:280px">键名</th>
+            <th>中文值</th>
+          </tr>
+        </thead>
+        <tbody id="dead-body"></tbody>
+      </table>
+      <div class="empty-state hidden" id="dead-empty">
+        <div class="empty-icon">✓</div>
+        <div>未发现死键（请先点击「扫描死键」）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: anti-patterns -->
+  <div id="tab-antipattern" class="tab-pane hidden">
+    <div class="pane-toolbar">
+      <select id="filter-antipattern-kind" class="filter-select">
+        <option value="">所有反模式</option>
+        <option value="chinese_fallback">中文兜底 (|| '中文')</option>
+        <option value="key_leading_space">key 前导空格</option>
+        <option value="undefined_key">未定义的 key</option>
+      </select>
+      <input id="filter-antipattern" class="filter-input" placeholder="搜索…" style="flex:1">
+      <span class="count-label" id="antipattern-count"></span>
+      <button id="btn-scan-antipattern" class="btn-primary">扫描反模式</button>
+      <button id="btn-fix-antipattern" class="btn-warn" disabled>批量自动修复中文兜底</button>
+    </div>
+    <div class="empty-hint">
+      自动修复仅处理 <code>t('xxx') || '中文'</code> 这种兜底（删除后半段，因 i18n 已有 zh-CN 顶层回退）。<code>key_leading_space</code> 和 <code>undefined_key</code> 需手动修。
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:240px">文件</th>
+            <th style="width:60px">行号</th>
+            <th style="width:140px">类型</th>
+            <th style="width:200px">key</th>
+            <th>代码上下文</th>
+          </tr>
+        </thead>
+        <tbody id="antipattern-body"></tbody>
+      </table>
+      <div class="empty-state hidden" id="antipattern-empty">
+        <div class="empty-icon">✓</div>
+        <div>未发现反模式（请先点击「扫描反模式」）</div>
       </div>
     </div>
   </div>
