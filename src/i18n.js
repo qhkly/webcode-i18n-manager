@@ -437,16 +437,31 @@ window.i18n.t = function(key, ...args) {
   return value;
 };
 
-// Set current language
+// Set current language (backward compatible)
 window.i18n.setLang = function(lang) {
   window.i18n.currentLang = lang;
   localStorage.setItem('i18n-manager.lang', lang);
-  window.dispatchEvent(new CustomEvent('i18n-change', { detail: lang }));
+  // Dispatch both events for compatibility
+  window.dispatchEvent(new CustomEvent('i18n-change', { detail: { locale: lang } }));
+  window.dispatchEvent(new CustomEvent('localechange', { detail: { locale: lang } }));
 };
 
-// Get current language
+// Alias for git-manager compatibility
+window.i18n.setLocale = window.i18n.setLang;
+
+// Get current language (backward compatible)
 window.i18n.getLang = function() {
   return window.i18n.currentLang || localStorage.getItem('i18n-manager.lang') || 'zh';
+};
+
+// Alias for git-manager compatibility
+window.i18n.getLocale = window.i18n.getLang;
+
+// Reload i18n (triggers re-apply of translations)
+window.i18n.reload = function() {
+  const lang = window.i18n.getLang();
+  window.i18n.currentLang = lang;
+  window.i18n.applyTranslations();
 };
 
 // Apply translations to DOM elements with data-i18n attribute

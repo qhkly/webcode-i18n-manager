@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="pageTitle">i18n 检查工具</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- React for JSX components -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="i18n.js"></script>
 </head>
 <body>
@@ -272,6 +276,9 @@
     <div class="scan-text" data-i18n="scanningOverlay">正在扫描…</div>
   </div>
 
+  <script src="bridge.js"></script>
+  <script src="modals.jsx" type="text/babel"></script>
+  <script src="app.jsx" type="text/babel"></script>
   <script src="main.js" type="module"></script>
 </body>
 </html>

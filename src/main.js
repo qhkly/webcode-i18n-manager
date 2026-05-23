@@ -1,6 +1,7 @@
-const { invoke } = window.__TAURI__.core;
-const { open: openDialog } = window.__TAURI__.dialog;
-const { listen } = window.__TAURI__.event;
+// Use Bridge API for Tauri commands (supports browser fallback)
+const { invoke } = window.__TAURI__?.core || {};
+const { open: openDialog } = window.__TAURI__?.dialog || {};
+const { listen } = window.__TAURI__?.event || {};
 
 const t = (key, ...args) => window.i18n.t(key, ...args);
 
@@ -107,10 +108,10 @@ const checkAllWrong = $('check-all-wrong');
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
-  settings = await invoke('i18n_load_settings');
+  settings = await Bridge.loadSettings();
   applySettings();
   setupEventListeners();
-  await listen('i18n:translate:progress', (e) => handleTranslateProgress(e.payload));
+  await Bridge.onTranslateProgress((e) => handleTranslateProgress(e.payload));
   refreshTranslationStatus();
 }
 
@@ -131,7 +132,7 @@ async function refreshTranslationStatus() {
     return;
   }
   try {
-    translationStatus = await invoke('i18n_translation_status', { projectPath: settings.project_path });
+    translationStatus = await Bridge.translationStatus(settings.project_path);
     const srcLabel = {
       settings: t('apiStatusUser'),
       env: t('apiStatusEnv'),
@@ -228,7 +229,7 @@ function hideSettings() {
 
 async function browseFolder() {
   try {
-    const selected = await openDialog({ directory: true, multiple: false });
+    const selected = await Bridge.pickDirectory(settings.project_path);
     if (selected) {
       $('input-project-path').value = selected;
     }
@@ -242,7 +243,7 @@ async function saveSettings() {
   settings.gemini_api_key = $('input-gemini-key').value.trim();
   settings.gemini_model = $('select-gemini-model').value;
   try {
-    await invoke('i18n_save_settings', { settings });
+    await Bridge.saveSettings(settings);
     applySettings();
     hideSettings();
     log(t('settingsSaved'), 'ok');
@@ -266,7 +267,7 @@ async function runScan() {
   log(t('startScanLog'), 'info');
 
   try {
-    scanResult = await invoke('i18n_scan', { projectPath: settings.project_path });
+    scanResult = await Bridge.scan(settings.project_path);
     renderAll(scanResult);
     log(t('scanCompleteLog', scanResult.hardcoded.length, scanResult.missing.length, scanResult.wrong_lang.length), 'ok');
     await refreshTranslationStatus();
@@ -517,12 +518,13 @@ async function runTranslate(mode) {
       const keys = keysByLang ? keysByLang.get(lang) : null;
       log(t('startTranslateLog', lang, keys ? ` (${keys.length} ${t('colKey')})` : ''), 'info');
       try {
-        const report = await invoke('i18n_translate', {
-          projectPath: settings.project_path,
-          targetLang: lang,
-          keys: keys,
-          sample: null,
-        });
+        const report = await Bridge.translate(
+          settings.project_path,
+          lang,
+          keys,
+          null,
+          false,
+        );
         log(t('reportLog', lang, report.translated, report.failed_batches, report.written_total, report.total_keys),
             report.failed_batches > 0 ? 'warn' : 'ok');
       } catch (e) {
@@ -600,7 +602,7 @@ async function fixMissingKeys() {
 
   log(t('addingKeysLog', fixes.length), 'info');
   try {
-    const results = await invoke('i18n_add_missing_keys', { fixes });
+    const results = await Bridge.addMissingKeys(fixes);
     results.forEach(r => log(r, r.startsWith('✓') ? 'ok' : 'err'));
     await runScan();
   } catch (e) {
@@ -730,13 +732,13 @@ async function translateWrongValues(mode) {
     for (const [lang, keys] of byLocale) {
       log(t('startTranslateLog', lang, `: ${keys.length} ${t('keysCountFormat', keys.length)}`), 'info');
       try {
-        const report = await invoke('i18n_translate', {
-          projectPath: settings.project_path,
-          targetLang: lang,
+        const report = await Bridge.translate(
+          settings.project_path,
+          lang,
           keys,
-          sample: null,
-          overwrite: true,
-        });
+          null,
+          true,
+        );
         log(t('retranslateReportLog', lang, report.translated, report.failed_batches),
             report.failed_batches > 0 ? 'warn' : 'ok');
       } catch (e) {
@@ -760,10 +762,7 @@ async function fixSingleWrong(idx) {
   const item = filteredWrong[idx];
   if (!item) return;
   try {
-    const result = await invoke('i18n_clear_wrong_value', {
-      localePath: item.locale_path,
-      keys: [item.key],
-    });
+    const result = await Bridge.clearWrongValue(item.locale_path, [item.key]);
     log(result, 'ok');
     await runScan();
   } catch (e) {
@@ -784,10 +783,7 @@ async function fixAllWrongValues() {
   log(t('clearingLog', filteredWrong.length), 'info');
   try {
     for (const [path, keys] of Object.entries(byFile)) {
-      const result = await invoke('i18n_clear_wrong_value', {
-        localePath: path,
-        keys,
-      });
+      const result = await Bridge.clearWrongValue(path, keys);
       log(result, 'ok');
     }
     await runScan();
@@ -826,7 +822,7 @@ async function scanDeadKeys() {
   showOverlay(true);
   log(t('scanningDeadLog'), 'info');
   try {
-    deadKeys = await invoke('i18n_scan_dead_keys', { projectPath: settings.project_path });
+    deadKeys = await Bridge.scanDeadKeys(settings.project_path);
     log(t('scanDeadCompleteLog', deadKeys.length), 'ok');
     applyDeadFilter();
   } catch (e) {
@@ -888,7 +884,7 @@ async function deleteSelectedDeadKeys() {
 
   log(t('deletingLog', keys.length), 'info');
   try {
-    const result = await invoke('i18n_delete_dead_keys', { projectPath: settings.project_path, keys });
+    const result = await Bridge.deleteDeadKeys(settings.project_path, keys);
     log(result, 'ok');
     deadKeys = deadKeys.filter(k => !keys.includes(k.key));
     applyDeadFilter();
@@ -909,7 +905,7 @@ async function scanAntiPatterns() {
   showOverlay(true);
   log(t('scanningAntiPatternLog'), 'info');
   try {
-    antiPatterns = await invoke('i18n_scan_antipatterns', { projectPath: settings.project_path });
+    antiPatterns = await Bridge.scanAntipatterns(settings.project_path);
     log(t('scanAntiPatternCompleteLog', antiPatterns.length), 'ok');
     applyAntiPatternFilter();
   } catch (e) {
@@ -972,7 +968,7 @@ async function fixChineseFallbacks() {
   if (!confirm(t('fixConfirm'))) return;
   log(t('fixingAntiPatternLog'), 'info');
   try {
-    const result = await invoke('i18n_fix_chinese_fallbacks', { projectPath: settings.project_path });
+    const result = await Bridge.fixChineseFallbacks(settings.project_path);
     log(result, 'ok');
     await scanAntiPatterns();
   } catch (e) {

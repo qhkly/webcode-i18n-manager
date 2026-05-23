@@ -1,60 +1,87 @@
+/* ── Design System Variables (OKLCH Color Space) ── */
+:root {
+  /* Semantic colors (OKLCH) */
+  --c-ok:      oklch(64% 0.14 150);  /* Success */
+  --c-warn:    oklch(72% 0.15 70);   /* Warning */
+  --c-info:    oklch(62% 0.14 240);  /* Info */
+  --c-err:     oklch(60% 0.18 25);   /* Error */
+  --c-mute:    oklch(70% 0.02 250);  /* Muted */
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
 /* ── Light theme (default) ── */
 :root {
   color-scheme: light;
-  --bg: #f5f5f7;
-  --bg2: #ffffff;
-  --bg3: #ededf2;
-  --border: #d8d8e0;
-  --text: #1a1a2e;
-  --text2: #6b6b80;
-  --accent: #3b6fff;
-  --accent-hover: #5580ff;
-  --success: #2e9e5c;
-  --warn: #c47f00;
-  --danger: #cc3333;
-  --badge-bg: #e4e4ee;
-  --badge-warn-bg: #fff0d0;
-  --radius: 6px;
-  --row-hover: #ebebf3;
+  --bg: oklch(98% 0.005 250);
+  --bg2: oklch(100% 0 0);
+  --bg3: oklch(94% 0.01 250);
+  --border: oklch(85% 0.01 250);
+  --text: oklch(20% 0.02 250);
+  --text2: oklch(45% 0.01 250);
+  --accent: oklch(55% 0.15 250);
+  --accent-hover: oklch(60% 0.15 250);
+  --success: var(--c-ok);
+  --warn: var(--c-warn);
+  --danger: var(--c-err);
+  --badge-bg: oklch(92% 0.01 250);
+  --badge-warn-bg: oklch(95% 0.03 70);
+  --radius: var(--radius-md);
+  --row-hover: oklch(95% 0.01 250);
 }
 
 /* ── Dark theme (explicit) ── */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1a1a1f;
-  --bg2: #22222a;
-  --bg3: #2a2a35;
-  --border: #3a3a48;
-  --text: #e8e8f0;
-  --text2: #9898b0;
-  --accent: #5b8fff;
-  --accent-hover: #7aaeff;
-  --success: #4caf7d;
-  --warn: #f5a623;
-  --danger: #e05252;
-  --badge-bg: #3a3a48;
-  --badge-warn-bg: #7a3a00;
-  --row-hover: #2a2a38;
+  --bg: oklch(20% 0.01 250);
+  --bg2: oklch(25% 0.01 250);
+  --bg3: oklch(30% 0.01 250);
+  --border: oklch(40% 0.01 250);
+  --text: oklch(90% 0.01 250);
+  --text2: oklch(65% 0.01 250);
+  --accent: oklch(65% 0.15 250);
+  --accent-hover: oklch(70% 0.15 250);
+  --success: var(--c-ok);
+  --warn: var(--c-warn);
+  --danger: var(--c-err);
+  --badge-bg: oklch(40% 0.01 250);
+  --badge-warn-bg: oklch(35% 0.03 70);
+  --row-hover: oklch(35% 0.01 250);
 }
 
 /* ── Dark theme (system preference) ── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #1a1a1f;
-    --bg2: #22222a;
-    --bg3: #2a2a35;
-    --border: #3a3a48;
-    --text: #e8e8f0;
-    --text2: #9898b0;
-    --accent: #5b8fff;
-    --accent-hover: #7aaeff;
-    --success: #4caf7d;
-    --warn: #f5a623;
-    --danger: #e05252;
-    --badge-bg: #3a3a48;
-    --badge-warn-bg: #7a3a00;
-    --row-hover: #2a2a38;
+    --bg: oklch(20% 0.01 250);
+    --bg2: oklch(25% 0.01 250);
+    --bg3: oklch(30% 0.01 250);
+    --border: oklch(40% 0.01 250);
+    --text: oklch(90% 0.01 250);
+    --text2: oklch(65% 0.01 250);
+    --accent: oklch(65% 0.15 250);
+    --accent-hover: oklch(70% 0.15 250);
+    --success: var(--c-ok);
+    --warn: var(--c-warn);
+    --danger: var(--c-err);
+    --badge-bg: oklch(40% 0.01 250);
+    --badge-warn-bg: oklch(35% 0.03 70);
+    --row-hover: oklch(35% 0.01 250);
   }
 }
 
