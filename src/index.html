@@ -3,75 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>i18n 检查工具</title>
+  <title data-i18n="pageTitle">i18n 检查工具</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
 </head>
 <body>
   <div id="titlebar" data-tauri-drag-region>
-    <span class="title-text">i18n 检查工具</span>
+    <span class="title-text" data-i18n="titlebarText">i18n 检查工具</span>
+    <button id="btn-lang-toggle" class="btn-ghost btn-sm" title="切换到英文">EN</button>
   </div>
 
   <div id="toolbar">
-    <div id="path-display" title="">未配置项目路径</div>
+    <div id="path-display" title="" data-i18n="notConfigured">未配置项目路径</div>
     <div class="toolbar-actions">
       <span id="api-status" class="api-status" title="" hidden></span>
-      <button id="btn-scan" class="btn-primary" disabled>扫描</button>
+      <button id="btn-scan" class="btn-primary" disabled data-i18n="scanBtn">扫描</button>
       <button id="btn-theme" class="btn-ghost" title="切换主题"></button>
-      <button id="btn-settings" class="btn-ghost">设置</button>
+      <button id="btn-settings" class="btn-ghost" data-i18n="settingsBtn">设置</button>
     </div>
   </div>
 
   <!-- Settings panel -->
   <div id="settings-panel" class="hidden">
     <div class="settings-row">
-      <label for="input-project-path">项目路径</label>
-      <input id="input-project-path" type="text" placeholder="/path/to/webclaw-launcher-tauri">
-      <button id="btn-browse" class="btn-ghost">浏览…</button>
+      <label for="input-project-path" data-i18n="settingsProjectPath">项目路径</label>
+      <input id="input-project-path" type="text" data-i18n-placeholder="settingsPathPlaceholder" placeholder="/path/to/webclaw-launcher-tauri">
+      <button id="btn-browse" class="btn-ghost" data-i18n="settingsBrowse">浏览…</button>
     </div>
     <div class="settings-row">
-      <label for="input-gemini-key">Gemini API Key</label>
-      <input id="input-gemini-key" type="password" placeholder="留空回退: GOOGLE_API_KEYS 环境变量 → 内置默认 key（多 key 逗号分隔）" autocomplete="off">
+      <label for="input-gemini-key" data-i18n="settingsGeminiKey">Gemini API Key</label>
+      <input id="input-gemini-key" type="password" data-i18n-placeholder="settingsGeminiKeyPlaceholder" placeholder="留空回退: GOOGLE_API_KEYS 环境变量 → 内置默认 key（多 key 逗号分隔）" autocomplete="off">
     </div>
     <div class="settings-row">
-      <label for="select-gemini-model">翻译模型</label>
+      <label for="select-gemini-model" data-i18n="settingsModel">翻译模型</label>
       <select id="select-gemini-model">
-        <option value="">默认 (gemini-2.5-flash)</option>
-        <option value="gemini-2.5-flash">gemini-2.5-flash（推荐，便宜）</option>
-        <option value="gemini-2.5-pro">gemini-2.5-pro（贵 10×，仅用于难翻译术语）</option>
+        <option value="" data-i18n="settingsModelDefault">默认 (gemini-2.5-flash)</option>
+        <option value="gemini-2.5-flash" data-i18n="settingsModelFlash">gemini-2.5-flash（推荐，便宜）</option>
+        <option value="gemini-2.5-pro" data-i18n="settingsModelPro">gemini-2.5-pro（贵 10×，仅用于难翻译术语）</option>
       </select>
     </div>
     <div class="settings-actions">
-      <button id="btn-save-settings" class="btn-primary">保存设置</button>
-      <button id="btn-cancel-settings" class="btn-ghost">取消</button>
+      <button id="btn-save-settings" class="btn-primary" data-i18n="settingsSave">保存设置</button>
+      <button id="btn-cancel-settings" class="btn-ghost" data-i18n="settingsCancel">取消</button>
     </div>
   </div>
 
   <!-- Locale summary bar -->
   <div id="locale-bar" class="hidden">
-    <span class="locale-bar-label">已加载语言：</span>
+    <span class="locale-bar-label" data-i18n="loadedLanguages">已加载语言：</span>
     <span id="locale-chips"></span>
   </div>
 
   <!-- Tabs -->
   <div id="tabs" class="hidden">
     <button class="tab-btn active" data-tab="hardcoded">
-      硬编码字符串
+      <span data-i18n="tabHardcoded">硬编码字符串</span>
       <span class="badge" id="badge-hardcoded">0</span>
     </button>
     <button class="tab-btn" data-tab="missing">
-      缺失翻译
+      <span data-i18n="tabMissing">缺失翻译</span>
       <span class="badge" id="badge-missing">0</span>
     </button>
     <button class="tab-btn" data-tab="wrong">
-      语言错误
+      <span data-i18n="tabWrong">语言错误</span>
       <span class="badge badge-warn" id="badge-wrong">0</span>
     </button>
     <button class="tab-btn" data-tab="dead">
-      死键
+      <span data-i18n="tabDead">死键</span>
       <span class="badge" id="badge-dead">—</span>
     </button>
     <button class="tab-btn" data-tab="antipattern">
-      反模式
+      <span data-i18n="tabAntiPattern">反模式</span>
       <span class="badge" id="badge-antipattern">—</span>
     </button>
   </div>
@@ -79,13 +81,13 @@
   <!-- Tab: hardcoded -->
   <div id="tab-hardcoded" class="tab-pane hidden">
     <div class="pane-toolbar">
-      <input id="filter-hardcoded" class="filter-input" placeholder="搜索文件名或内容…">
+      <input id="filter-hardcoded" class="filter-input" data-i18n-placeholder="filterHardcodedPlaceholder" placeholder="搜索文件名或内容…">
       <span class="lang-filter-group" id="lang-filter-group">
-        <label><input type="checkbox" class="lang-filter" value="js" checked> JS</label>
-        <label><input type="checkbox" class="lang-filter" value="html" checked> HTML</label>
-        <label><input type="checkbox" class="lang-filter" value="rust" checked> Rust</label>
-        <label><input type="checkbox" class="lang-filter" value="shell" checked> Shell</label>
-        <label class="lang-filter-comment"><input type="checkbox" id="filter-show-comments"> 含注释</label>
+        <label><input type="checkbox" class="lang-filter" value="js" checked> <span data-i18n="langJS">JS</span></label>
+        <label><input type="checkbox" class="lang-filter" value="html" checked> <span data-i18n="langHTML">HTML</span></label>
+        <label><input type="checkbox" class="lang-filter" value="rust" checked> <span data-i18n="langRust">Rust</span></label>
+        <label><input type="checkbox" class="lang-filter" value="shell" checked> <span data-i18n="langShell">Shell</span></label>
+        <label class="lang-filter-comment"><input type="checkbox" id="filter-show-comments"> <span data-i18n="includeComments">含注释</span></label>
       </span>
       <span class="count-label" id="hardcoded-count"></span>
     </div>
@@ -93,18 +95,18 @@
       <table>
         <thead>
           <tr>
-            <th style="width:240px">文件</th>
-            <th style="width:60px">行号</th>
-            <th style="width:120px">类型</th>
-            <th style="width:200px">中文内容</th>
-            <th>代码上下文</th>
+            <th style="width:240px" data-i18n="colFile">文件</th>
+            <th style="width:60px" data-i18n="colLine">行号</th>
+            <th style="width:120px" data-i18n="colType">类型</th>
+            <th style="width:200px" data-i18n="colChinese">中文内容</th>
+            <th data-i18n="colContext">代码上下文</th>
           </tr>
         </thead>
         <tbody id="hardcoded-body"></tbody>
       </table>
       <div class="empty-state hidden" id="hardcoded-empty">
         <div class="empty-icon">✓</div>
-        <div>未发现硬编码中文字符串</div>
+        <div data-i18n="emptyHardcoded">未发现硬编码中文字符串</div>
       </div>
     </div>
   </div>
@@ -113,18 +115,18 @@
   <div id="tab-missing" class="tab-pane hidden">
     <div class="pane-toolbar">
       <select id="filter-missing-locale" class="filter-select">
-        <option value="">所有缺失语言</option>
+        <option value="" data-i18n="allMissingLanguages">所有缺失语言</option>
       </select>
-      <input id="filter-missing-key" class="filter-input" placeholder="搜索键名或内容…" style="flex:1">
+      <input id="filter-missing-key" class="filter-input" data-i18n-placeholder="filterMissingKeyPlaceholder" placeholder="搜索键名或内容…" style="flex:1">
       <span class="count-label" id="missing-count"></span>
-      <button id="btn-translate-selected" class="btn-primary" disabled title="使用 Gemini 翻译选中的键">翻译选中</button>
-      <button id="btn-translate-locale" class="btn-primary" disabled title="翻译当前筛选语言所有缺失键">翻译此语种全部缺失</button>
-      <button id="btn-fix-missing" class="btn-ghost" disabled>补全为空白</button>
+      <button id="btn-translate-selected" class="btn-primary" disabled data-i18n="translateSelected" data-i18n-title="translateSelectedTitle">翻译选中</button>
+      <button id="btn-translate-locale" class="btn-primary" disabled data-i18n="translateLocale" data-i18n-title="translateLocaleTitle">翻译此语种全部缺失</button>
+      <button id="btn-fix-missing" class="btn-ghost" disabled data-i18n="fillBlank">补全为空白</button>
     </div>
     <div id="translate-progress" class="translate-progress hidden">
       <div class="translate-progress-header">
-        <span id="translate-progress-text">准备中…</span>
-        <button id="btn-translate-close" class="btn-ghost btn-sm" title="关闭面板">×</button>
+        <span id="translate-progress-text" data-i18n="preparing">准备中…</span>
+        <button id="btn-translate-close" class="btn-ghost btn-sm" data-i18n-title="closePanel" data-i18n="closeBtn">×</button>
       </div>
       <div class="translate-progress-bar">
         <div id="translate-progress-fill"></div>
@@ -136,17 +138,17 @@
         <thead>
           <tr>
             <th style="width:32px"><input type="checkbox" id="check-all-missing"></th>
-            <th style="width:220px">键名</th>
-            <th style="width:200px">中文值</th>
-            <th style="width:200px">英文值</th>
-            <th>缺失语言</th>
+            <th style="width:220px" data-i18n="colKey">键名</th>
+            <th style="width:200px" data-i18n="colZhValue">中文值</th>
+            <th style="width:200px" data-i18n="colEnValue">英文值</th>
+            <th data-i18n="colMissingLanguages">缺失语言</th>
           </tr>
         </thead>
         <tbody id="missing-body"></tbody>
       </table>
       <div class="empty-state hidden" id="missing-empty">
         <div class="empty-icon">✓</div>
-        <div>所有键均已在各语言中配置</div>
+        <div data-i18n="emptyMissing">所有键均已在各语言中配置</div>
       </div>
     </div>
   </div>
@@ -155,36 +157,36 @@
   <div id="tab-wrong" class="tab-pane hidden">
     <div class="pane-toolbar">
       <select id="filter-wrong-locale" class="filter-select">
-        <option value="">所有语言</option>
+        <option value="" data-i18n="allLanguages">所有语言</option>
       </select>
       <select id="filter-wrong-type" class="filter-select">
-        <option value="">所有问题类型</option>
-        <option value="same_as_english">与英文相同</option>
-        <option value="contains_chinese">含中文字符</option>
+        <option value="" data-i18n="allProblemTypes">所有问题类型</option>
+        <option value="same_as_english" data-i18n="sameAsEnglish">与英文相同</option>
+        <option value="contains_chinese" data-i18n="containsChinese">含中文字符</option>
       </select>
       <span class="count-label" id="wrong-count"></span>
-      <button id="btn-translate-wrong-selected" class="btn-primary" disabled title="使用 Gemini 重新翻译选中的值">翻译选中</button>
-      <button id="btn-translate-wrong-all" class="btn-primary" disabled title="翻译当前筛选条件下所有错误值">翻译筛选全部</button>
-      <button id="btn-fix-wrong-all" class="btn-ghost" disabled>清空筛选</button>
+      <button id="btn-translate-wrong-selected" class="btn-primary" disabled data-i18n="retranslateSelected" data-i18n-title="retranslateSelectedTitle">翻译选中</button>
+      <button id="btn-translate-wrong-all" class="btn-primary" disabled data-i18n="retranslateFiltered" data-i18n-title="retranslateFilteredTitle">翻译筛选全部</button>
+      <button id="btn-fix-wrong-all" class="btn-ghost" disabled data-i18n="clearFiltered">清空筛选</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th style="width:32px"><input type="checkbox" id="check-all-wrong"></th>
-            <th style="width:80px">语言</th>
-            <th style="width:200px">键名</th>
-            <th>当前值（错误）</th>
-            <th>英文参考值</th>
-            <th style="width:100px">问题类型</th>
-            <th style="width:70px">操作</th>
+            <th style="width:80px" data-i18n="colLanguage">语言</th>
+            <th style="width:200px" data-i18n="colKey">键名</th>
+            <th data-i18n="colCurrentValue">当前值（错误）</th>
+            <th data-i18n="colEnRef">英文参考值</th>
+            <th style="width:100px" data-i18n="colProblemType">问题类型</th>
+            <th style="width:70px" data-i18n="colAction">操作</th>
           </tr>
         </thead>
         <tbody id="wrong-body"></tbody>
       </table>
       <div class="empty-state hidden" id="wrong-empty">
         <div class="empty-icon">✓</div>
-        <div>未发现语言配置错误</div>
+        <div data-i18n="emptyWrong">未发现语言配置错误</div>
       </div>
     </div>
   </div>
@@ -192,12 +194,12 @@
   <!-- Tab: dead keys -->
   <div id="tab-dead" class="tab-pane hidden">
     <div class="pane-toolbar">
-      <input id="filter-dead" class="filter-input" placeholder="搜索键名或中文值…" style="flex:1">
+      <input id="filter-dead" class="filter-input" data-i18n-placeholder="filterDeadPlaceholder" placeholder="搜索键名或中文值…" style="flex:1">
       <span class="count-label" id="dead-count"></span>
-      <button id="btn-scan-dead" class="btn-primary">扫描死键</button>
-      <button id="btn-delete-dead" class="btn-warn" disabled>删除选中</button>
+      <button id="btn-scan-dead" class="btn-primary" data-i18n="scanDeadKeys">扫描死键</button>
+      <button id="btn-delete-dead" class="btn-warn" disabled data-i18n="deleteSelected">删除选中</button>
     </div>
-    <div class="empty-hint">
+    <div class="empty-hint" data-i18n="deadHint">
       死键 = zh-CN 中存在但代码里没引用的键。带 <code>${'${...}'}</code> 模板拼接的动态键会启发式跳过（按前缀匹配）。删除前自动备份到 <code>.i18n-backup/</code>。
     </div>
     <div class="table-wrap">
@@ -205,15 +207,15 @@
         <thead>
           <tr>
             <th style="width:32px"><input type="checkbox" id="check-all-dead"></th>
-            <th style="width:280px">键名</th>
-            <th>中文值</th>
+            <th style="width:280px" data-i18n="colDeadKey">键名</th>
+            <th data-i18n="colDeadZhValue">中文值</th>
           </tr>
         </thead>
         <tbody id="dead-body"></tbody>
       </table>
       <div class="empty-state hidden" id="dead-empty">
         <div class="empty-icon">✓</div>
-        <div>未发现死键（请先点击「扫描死键」）</div>
+        <div data-i18n="emptyDead">未发现死键（请先点击「扫描死键」）</div>
       </div>
     </div>
   </div>
@@ -222,35 +224,35 @@
   <div id="tab-antipattern" class="tab-pane hidden">
     <div class="pane-toolbar">
       <select id="filter-antipattern-kind" class="filter-select">
-        <option value="">所有反模式</option>
-        <option value="chinese_fallback">中文兜底 (|| '中文')</option>
-        <option value="key_leading_space">key 前导空格</option>
-        <option value="undefined_key">未定义的 key</option>
+        <option value="" data-i18n="allAntiPatterns">所有反模式</option>
+        <option value="chinese_fallback" data-i18n="chineseFallback">中文兜底 (|| '中文')</option>
+        <option value="key_leading_space" data-i18n="keyLeadingSpace">key 前导空格</option>
+        <option value="undefined_key" data-i18n="undefinedKey">未定义的 key</option>
       </select>
-      <input id="filter-antipattern" class="filter-input" placeholder="搜索…" style="flex:1">
+      <input id="filter-antipattern" class="filter-input" data-i18n-placeholder="filterHardcodedPlaceholder" placeholder="搜索…" style="flex:1">
       <span class="count-label" id="antipattern-count"></span>
-      <button id="btn-scan-antipattern" class="btn-primary">扫描反模式</button>
-      <button id="btn-fix-antipattern" class="btn-warn" disabled>批量自动修复中文兜底</button>
+      <button id="btn-scan-antipattern" class="btn-primary" data-i18n="scanAntiPatterns">扫描反模式</button>
+      <button id="btn-fix-antipattern" class="btn-warn" disabled data-i18n="fixChineseFallbacks">批量自动修复中文兜底</button>
     </div>
-    <div class="empty-hint">
+    <div class="empty-hint" data-i18n="antiPatternHint">
       自动修复仅处理 <code>t('xxx') || '中文'</code> 这种兜底（删除后半段，因 i18n 已有 zh-CN 顶层回退）。<code>key_leading_space</code> 和 <code>undefined_key</code> 需手动修。
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th style="width:240px">文件</th>
-            <th style="width:60px">行号</th>
-            <th style="width:140px">类型</th>
-            <th style="width:200px">key</th>
-            <th>代码上下文</th>
+            <th style="width:240px" data-i18n="colAntiFile">文件</th>
+            <th style="width:60px" data-i18n="colAntiLine">行号</th>
+            <th style="width:140px" data-i18n="colAntiType">类型</th>
+            <th style="width:200px" data-i18n="colAntiKey">key</th>
+            <th data-i18n="colAntiContext">代码上下文</th>
           </tr>
         </thead>
         <tbody id="antipattern-body"></tbody>
       </table>
       <div class="empty-state hidden" id="antipattern-empty">
         <div class="empty-icon">✓</div>
-        <div>未发现反模式（请先点击「扫描反模式」）</div>
+        <div data-i18n="emptyAntiPattern">未发现反模式（请先点击「扫描反模式」）</div>
       </div>
     </div>
   </div>
@@ -258,8 +260,8 @@
   <!-- Log panel -->
   <div id="log-panel">
     <div id="log-toggle" class="log-header">
-      <span>操作日志</span>
-      <span id="log-arrow">▲</span>
+      <span data-i18n="logPanel">操作日志</span>
+      <span id="log-arrow" data-i18n="logArrowUp">▲</span>
     </div>
     <div id="log-content"></div>
   </div>
@@ -267,7 +269,7 @@
   <!-- Scanning overlay -->
   <div id="scan-overlay" class="hidden">
     <div class="scan-spinner"></div>
-    <div class="scan-text">正在扫描…</div>
+    <div class="scan-text" data-i18n="scanningOverlay">正在扫描…</div>
   </div>
 
   <script src="main.js" type="module"></script>

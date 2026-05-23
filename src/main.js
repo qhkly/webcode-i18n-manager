@@ -2,10 +2,12 @@ const { invoke } = window.__TAURI__.core;
 const { open: openDialog } = window.__TAURI__.dialog;
 const { listen } = window.__TAURI__.event;
 
+const t = (key, ...args) => window.i18n.t(key, ...args);
+
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const THEME_CYCLE = ['system', 'light', 'dark'];
 const THEME_ICON  = { system: '💻', light: '☀️', dark: '🌙' };
-const THEME_LABEL = { system: '跟随系统', light: '浅色', dark: '深色' };
+const THEME_LABEL_KEY = { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' };
 
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -13,7 +15,7 @@ function applyTheme(theme) {
   else if (theme === 'light') root.setAttribute('data-theme', 'light');
   else                        root.removeAttribute('data-theme');
   const btn = document.getElementById('btn-theme');
-  if (btn) { btn.textContent = THEME_ICON[theme]; btn.title = THEME_LABEL[theme]; }
+  if (btn) { btn.textContent = THEME_ICON[theme]; btn.title = t(THEME_LABEL_KEY[theme]); }
 }
 
 function initTheme() {
@@ -31,6 +33,26 @@ function initTheme() {
 }
 
 initTheme();
+
+// ─── Language toggle ──────────────────────────────────────────────────────────
+function initLangToggle() {
+  const btn = document.getElementById('btn-lang-toggle');
+  if (!btn) return;
+  const updateBtn = () => {
+    const lang = window.i18n.getLang();
+    btn.textContent = lang === 'zh' ? 'EN' : '中';
+    btn.title = lang === 'zh' ? t('langToggleToEn') : t('langToggleToZh');
+  };
+  updateBtn();
+  btn.addEventListener('click', () => {
+    const newLang = window.i18n.getLang() === 'zh' ? 'en' : 'zh';
+    window.i18n.setLang(newLang);
+    updateBtn();
+  });
+  window.addEventListener('i18n-change', updateBtn);
+}
+
+initLangToggle();
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let settings = { project_path: '', gemini_api_key: '', gemini_model: '' };
@@ -78,7 +100,7 @@ function applySettings() {
   $('input-project-path').value = path;
   $('input-gemini-key').value = settings.gemini_api_key || '';
   $('select-gemini-model').value = settings.gemini_model || '';
-  $('path-display').textContent = path || '未配置项目路径';
+  $('path-display').textContent = path || t('notConfigured');
   $('path-display').title = path;
   btnScan.disabled = !path;
 }
@@ -92,15 +114,15 @@ async function refreshTranslationStatus() {
   try {
     translationStatus = await invoke('i18n_translation_status', { projectPath: settings.project_path });
     const srcLabel = {
-      settings: '用户配置',
-      env: '环境变量',
-      default: '内置默认',
-      none: '未配置',
+      settings: t('apiStatusUser'),
+      env: t('apiStatusEnv'),
+      default: t('apiStatusDefault'),
+      none: t('apiStatusNone'),
     }[translationStatus.api_key_source] || translationStatus.api_key_source;
     status.textContent = `${translationStatus.model} · ${srcLabel}`;
-    status.title = `翻译模型: ${translationStatus.model}\nAPI Key 来源: ${srcLabel}` +
+    status.title = t('apiStatusTitle', translationStatus.model, srcLabel) +
       (translationStatus.api_key_source === 'default'
-        ? '\n\n提示：未填写 API Key 也未读到 GOOGLE_API_KEYS 环境变量，正在使用内置默认 key（与 webclaw-launcher-tauri 共享）。'
+        ? t('apiStatusHint')
         : '');
     status.classList.toggle('warn', translationStatus.api_key_source === 'none');
     status.hidden = false;
@@ -192,7 +214,7 @@ async function browseFolder() {
       $('input-project-path').value = selected;
     }
   } catch (e) {
-    log(`浏览文件夹失败: ${e}`, 'err');
+    log(t('browseFailed', e), 'err');
   }
 }
 
@@ -204,10 +226,10 @@ async function saveSettings() {
     await invoke('i18n_save_settings', { settings });
     applySettings();
     hideSettings();
-    log('设置已保存', 'ok');
+    log(t('settingsSaved'), 'ok');
     await refreshTranslationStatus();
   } catch (e) {
-    log(`保存设置失败: ${e}`, 'err');
+    log(t('saveSettingsFailed', e), 'err');
   }
 }
 
@@ -222,15 +244,15 @@ function switchTab(name) {
 async function runScan() {
   if (!settings.project_path) return;
   showOverlay(true);
-  log('开始扫描…', 'info');
+  log(t('startScanLog'), 'info');
 
   try {
     scanResult = await invoke('i18n_scan', { projectPath: settings.project_path });
     renderAll(scanResult);
-    log(`扫描完成 — 硬编码: ${scanResult.hardcoded.length}, 缺失翻译: ${scanResult.missing.length}, 语言错误: ${scanResult.wrong_lang.length}`, 'ok');
+    log(t('scanCompleteLog', scanResult.hardcoded.length, scanResult.missing.length, scanResult.wrong_lang.length), 'ok');
     await refreshTranslationStatus();
   } catch (e) {
-    log(`扫描失败: ${e}`, 'err');
+    log(t('scanFailedLog', e), 'err');
   } finally {
     showOverlay(false);
   }
@@ -269,17 +291,17 @@ function renderLocaleBar(locales) {
 }
 
 // ─── Tab 1: Hardcoded ─────────────────────────────────────────────────────────
-const KIND_LABEL = {
-  js: 'JS',
-  html: 'HTML',
-  rust_user_error: 'Rust 错误',
-  rust_user_visible: 'Rust 可见',
-  rust_internal: 'Rust 内部',
-  rust_comment: 'Rust 注释',
-  rust_doc_comment: 'Rust 文档',
-  shell_user_output: 'Shell 输出',
-  shell_internal: 'Shell 内部',
-  shell_comment: 'Shell 注释',
+const KIND_LABEL_KEY = {
+  js: 'langJS',
+  html: 'langHTML',
+  rust_user_error: 'kindRustError',
+  rust_user_visible: 'kindRustVisible',
+  rust_internal: 'kindRustInternal',
+  rust_comment: 'kindRustComment',
+  rust_doc_comment: 'kindRustDocComment',
+  shell_user_output: 'kindShellOutput',
+  shell_internal: 'kindShellInternal',
+  shell_comment: 'kindShellComment',
 };
 
 function isCommentKind(k) {
@@ -311,8 +333,8 @@ function renderHardcoded() {
   badge.textContent = total;
   badge.classList.toggle('has-issues', total > 0);
   $('hardcoded-count').textContent = items.length === total
-    ? `${items.length} 处`
-    : `${items.length} / ${total} 处`;
+    ? t('countFormat', items.length)
+    : t('countFilterFormat', items.length, total);
 
   if (items.length === 0) {
     tbody.innerHTML = '';
@@ -322,7 +344,7 @@ function renderHardcoded() {
   $('hardcoded-empty').classList.add('hidden');
 
   tbody.innerHTML = items.map(i => {
-    const kindLabel = KIND_LABEL[i.kind] || i.kind;
+    const kindLabel = t(KIND_LABEL_KEY[i.kind] || i.kind);
     const kindCls = i.kind === 'rust_user_error' ? 'kind-warn'
                   : isCommentKind(i.kind) ? 'kind-mute'
                   : '';
@@ -345,7 +367,7 @@ function populateMissingLocaleFilter(missing) {
   const locales = new Set();
   missing.forEach(m => m.missing_in.forEach(l => locales.add(l)));
   const sorted = [...locales].sort();
-  sel.innerHTML = '<option value="">所有缺失语言</option>';
+  sel.innerHTML = `<option value="">${t('allMissingLanguages')}</option>`;
   sorted.forEach(l => { sel.innerHTML += `<option value="${l}">${l}</option>`; });
   // Preserve previous selection if it still exists.
   if (prev && sorted.includes(prev)) sel.value = prev;
@@ -369,7 +391,7 @@ function renderMissing() {
   const badge = $('badge-missing');
   badge.textContent = items.length;
   badge.classList.toggle('has-issues', items.length > 0);
-  $('missing-count').textContent = `${items.length} 个键`;
+  $('missing-count').textContent = t('keysCountFormat', items.length);
   checkAllMissing.checked = false;
   updateFixMissingBtn();
 
@@ -397,7 +419,7 @@ function renderMissing() {
 function updateFixMissingBtn() {
   const checked = document.querySelectorAll('.check-missing:checked').length;
   btnFixMissing.disabled = checked === 0;
-  btnFixMissing.textContent = checked > 0 ? `补全为空白 (${checked} 项)` : '补全为空白';
+  btnFixMissing.textContent = checked > 0 ? t('fillBlankWithCount', checked) : t('fillBlankBtn');
   updateTranslateButtons();
 }
 
@@ -412,25 +434,25 @@ function updateTranslateButtons() {
   const localeFilter = $('filter-missing-locale')?.value;
 
   btnTranslateSelected.disabled = !hasKey || checked === 0;
-  btnTranslateSelected.textContent = checked > 0 ? `翻译选中 (${checked})` : '翻译选中';
+  btnTranslateSelected.textContent = checked > 0 ? t('translateSelectedWithCount', checked) : t('translateSelected');
 
   // Locale button only meaningful when filter selects a single language
   btnTranslateLocale.disabled = !hasKey || !localeFilter;
-  btnTranslateLocale.textContent = localeFilter ? `翻译此语种全部缺失 (${localeFilter})` : '翻译此语种全部缺失';
+  btnTranslateLocale.textContent = localeFilter ? t('translateLocaleWithCount', localeFilter) : t('translateLocale');
 
   if (!hasKey) {
-    btnTranslateSelected.title = '请先到设置页配置 Gemini API Key';
-    btnTranslateLocale.title = '请先到设置页配置 Gemini API Key';
+    btnTranslateSelected.title = t('noApiKeyTitle');
+    btnTranslateLocale.title = t('noApiKeyTitle');
   } else {
-    btnTranslateSelected.title = '使用 Gemini 翻译选中的键';
-    btnTranslateLocale.title = '翻译当前筛选语言所有缺失键';
+    btnTranslateSelected.title = t('translateSelectedTitle');
+    btnTranslateLocale.title = t('translateLocaleTitle');
   }
 }
 
 async function runTranslate(mode) {
   if (translateInFlight) return;
   if (!translationStatus || translationStatus.api_key_source === 'none') {
-    log('请先到设置页配置 Gemini API Key', 'err');
+    log(t('pleaseConfigApiKey'), 'err');
     toggleSettings();
     return;
   }
@@ -468,13 +490,13 @@ async function runTranslate(mode) {
   logEl.innerHTML = '';
   fill.style.width = '0%';
   panel.classList.remove('hidden');
-  $('translate-progress-text').textContent = `准备翻译 ${targetLangs.join(', ')}…`;
+  $('translate-progress-text').textContent = t('preparingTranslate', targetLangs.join(', '));
 
   let hadError = false;
   try {
     for (const lang of targetLangs) {
       const keys = keysByLang ? keysByLang.get(lang) : null;
-      log(`开始翻译 ${lang}${keys ? ` (${keys.length} 个选中键)` : '（全部缺失键）'}`, 'info');
+      log(t('startTranslateLog', lang, keys ? ` (${keys.length} ${t('colKey')})` : ''), 'info');
       try {
         const report = await invoke('i18n_translate', {
           projectPath: settings.project_path,
@@ -482,11 +504,11 @@ async function runTranslate(mode) {
           keys: keys,
           sample: null,
         });
-        log(`${lang}: 新译 ${report.translated} 条 / 失败 ${report.failed_batches} 批 / 写入 ${report.written_total}/${report.total_keys}`,
+        log(t('reportLog', lang, report.translated, report.failed_batches, report.written_total, report.total_keys),
             report.failed_batches > 0 ? 'warn' : 'ok');
       } catch (e) {
         hadError = true;
-        log(`${lang} 翻译失败: ${e}`, 'err');
+        log(t('translateFailedLog', lang, e), 'err');
       }
     }
   } finally {
@@ -495,7 +517,7 @@ async function runTranslate(mode) {
   }
 
   if (!hadError) {
-    $('translate-progress-text').textContent = '翻译完成，正在重新扫描…';
+    $('translate-progress-text').textContent = t('translateDoneLog');
     await runScan();
   }
 }
@@ -515,22 +537,22 @@ function handleTranslateProgress(payload) {
   };
 
   if (kind === 'start') {
-    text.textContent = `${payload.lang}: ${payload.pending} 个键 / ${payload.total_batches} 批`;
+    text.textContent = t('translateProgressStart', payload.lang, payload.pending, payload.total_batches);
     fill.style.width = '0%';
-    addLine(`[${payload.lang}] 开始 — ${payload.pending} 键 / ${payload.total_batches} 批`, 'info');
+    addLine(t('translateProgressStartLine', payload.lang, payload.pending, payload.total_batches), 'info');
   } else if (kind === 'batch') {
     const pct = (payload.batch_no / payload.total_batches) * 100;
     fill.style.width = `${pct.toFixed(1)}%`;
-    text.textContent = `${payload.lang}: 批次 ${payload.batch_no}/${payload.total_batches} 完成`;
-    addLine(`[${payload.lang}] 批次 ${payload.batch_no}/${payload.total_batches}: ${payload.got}/${payload.batch_size}`, 'ok');
+    text.textContent = t('translateProgressBatch', payload.lang, payload.batch_no, payload.total_batches);
+    addLine(t('translateProgressBatchLine', payload.lang, payload.batch_no, payload.total_batches, payload.got, payload.batch_size), 'ok');
   } else if (kind === 'retry') {
-    addLine(`[${payload.lang}] 批次 ${payload.batch_no} 重试 ${payload.attempt}: ${payload.message}`, 'warn');
+    addLine(t('translateProgressRetry', payload.lang, payload.batch_no, payload.attempt, payload.message), 'warn');
   } else if (kind === 'batch_failed') {
-    addLine(`[${payload.lang}] 批次 ${payload.batch_no} 失败: ${payload.message}`, 'err');
+    addLine(t('translateProgressBatchFailed', payload.lang, payload.batch_no, payload.message), 'err');
   } else if (kind === 'done') {
-    text.textContent = `${payload.lang}: ${payload.written_total}/${payload.source_total} 已写入`;
+    text.textContent = t('translateProgressDone', payload.lang, payload.written_total, payload.source_total);
     fill.style.width = '100%';
-    addLine(`[${payload.lang}] 完成 — ${payload.written_total}/${payload.source_total}`, 'ok');
+    addLine(t('translateProgressDoneLine', payload.lang, payload.written_total, payload.source_total), 'ok');
   } else if (kind === 'info') {
     addLine(payload.message, 'info');
   }
@@ -557,13 +579,13 @@ async function fixMissingKeys() {
     }
   }
 
-  log(`正在添加 ${fixes.length} 个键…`, 'info');
+  log(t('addingKeysLog', fixes.length), 'info');
   try {
     const results = await invoke('i18n_add_missing_keys', { fixes });
     results.forEach(r => log(r, r.startsWith('✓') ? 'ok' : 'err'));
     await runScan();
   } catch (e) {
-    log(`修复失败: ${e}`, 'err');
+    log(t('fillFailedLog', e), 'err');
   }
 }
 
@@ -572,7 +594,7 @@ function populateWrongLocaleFilter(wrong) {
   const sel = $('filter-wrong-locale');
   const prev = sel.value;
   const sorted = [...new Set(wrong.map(w => w.locale))].sort();
-  sel.innerHTML = '<option value="">所有语言</option>';
+  sel.innerHTML = `<option value="">${t('allLanguages')}</option>`;
   sorted.forEach(l => { sel.innerHTML += `<option value="${l}">${l}</option>`; });
   if (prev && sorted.includes(prev)) sel.value = prev;
 }
@@ -595,9 +617,9 @@ function renderWrong() {
   const badge = $('badge-wrong');
   badge.textContent = items.length;
   badge.classList.toggle('has-issues', items.length > 0);
-  $('wrong-count').textContent = `${items.length} 处`;
+  $('wrong-count').textContent = t('countItemsFormat', items.length);
   btnFixWrongAll.disabled = items.length === 0;
-  btnFixWrongAll.textContent = items.length > 0 ? `清空筛选 (${items.length})` : '清空筛选';
+  btnFixWrongAll.textContent = items.length > 0 ? t('clearWithCount', items.length) : t('clearFiltered');
   checkAllWrong.checked = false;
   updateTranslateWrongBtns();
 
@@ -609,7 +631,7 @@ function renderWrong() {
   $('wrong-empty').classList.add('hidden');
 
   tbody.innerHTML = items.map((w, idx) => {
-    const typeLabel = w.issue_type === 'same_as_english' ? '与英文相同' : '含中文字符';
+    const typeLabel = w.issue_type === 'same_as_english' ? t('sameAsEnglishLabel') : t('containsChineseLabel');
     return `
       <tr>
         <td><input type="checkbox" class="check-wrong" data-idx="${idx}" onchange="updateTranslateWrongBtns()"></td>
@@ -619,7 +641,7 @@ function renderWrong() {
         <td class="cell-value" title="${esc(w.en_us_value)}">${esc(truncate(w.en_us_value, 50))}</td>
         <td><span class="issue-type ${w.issue_type}">${typeLabel}</span></td>
         <td>
-          <button class="btn-ghost btn-sm" onclick="fixSingleWrong(${idx})">清空</button>
+          <button class="btn-ghost btn-sm" onclick="fixSingleWrong(${idx})">${t('clearBtn')}</button>
         </td>
       </tr>
     `;
@@ -637,20 +659,20 @@ function updateTranslateWrongBtns() {
   const filteredCount = filteredWrong.length;
 
   btnTranslateWrongSelected.disabled = !hasKey || checked === 0;
-  btnTranslateWrongSelected.textContent = checked > 0 ? `翻译选中 (${checked})` : '翻译选中';
+  btnTranslateWrongSelected.textContent = checked > 0 ? t('retranslateSelectedWithCount', checked) : t('retranslateSelected');
 
   btnTranslateWrongAll.disabled = !hasKey || filteredCount === 0;
-  btnTranslateWrongAll.textContent = filteredCount > 0 ? `翻译筛选全部 (${filteredCount})` : '翻译筛选全部';
+  btnTranslateWrongAll.textContent = filteredCount > 0 ? t('retranslateFilteredWithCount', filteredCount) : t('retranslateFiltered');
 
-  const hint = hasKey ? '' : '请先到设置页配置 Gemini API Key';
-  btnTranslateWrongSelected.title = hint || '使用 Gemini 重新翻译选中的值';
-  btnTranslateWrongAll.title = hint || '翻译当前筛选条件下所有错误值';
+  const hint = hasKey ? '' : t('noApiKeyHint');
+  btnTranslateWrongSelected.title = hint || t('retranslateSelectedTitle');
+  btnTranslateWrongAll.title = hint || t('retranslateFilteredTitle');
 }
 
 async function translateWrongValues(mode) {
   if (translateInFlight) return;
   if (!translationStatus || translationStatus.api_key_source === 'none') {
-    log('请先到设置页配置 Gemini API Key', 'err');
+    log(t('pleaseConfigApiKey'), 'err');
     toggleSettings();
     return;
   }
@@ -682,12 +704,12 @@ async function translateWrongValues(mode) {
   logEl.innerHTML = '';
   fill.style.width = '0%';
   panel.classList.remove('hidden');
-  $('translate-progress-text').textContent = `准备重译 ${items.length} 项（${byLocale.size} 个语种）…`;
+  $('translate-progress-text').textContent = t('preparingRetranslate', items.length, byLocale.size);
 
   let hadError = false;
   try {
     for (const [lang, keys] of byLocale) {
-      log(`重译 ${lang}: ${keys.length} 个键`, 'info');
+      log(t('startTranslateLog', lang, `: ${keys.length} ${t('keysCountFormat', keys.length)}`), 'info');
       try {
         const report = await invoke('i18n_translate', {
           projectPath: settings.project_path,
@@ -696,11 +718,11 @@ async function translateWrongValues(mode) {
           sample: null,
           overwrite: true,
         });
-        log(`${lang}: 新译 ${report.translated} / 失败批次 ${report.failed_batches}`,
+        log(t('retranslateReportLog', lang, report.translated, report.failed_batches),
             report.failed_batches > 0 ? 'warn' : 'ok');
       } catch (e) {
         hadError = true;
-        log(`${lang} 重译失败: ${e}`, 'err');
+        log(t('retranslateFailedLog', lang, e), 'err');
       }
     }
   } finally {
@@ -710,7 +732,7 @@ async function translateWrongValues(mode) {
   }
 
   if (!hadError) {
-    $('translate-progress-text').textContent = '重译完成，正在重新扫描…';
+    $('translate-progress-text').textContent = t('retranslateDoneLog');
     await runScan();
   }
 }
@@ -726,7 +748,7 @@ async function fixSingleWrong(idx) {
     log(result, 'ok');
     await runScan();
   } catch (e) {
-    log(`清空失败: ${e}`, 'err');
+    log(t('clearFailedLog', e), 'err');
   }
 }
 
@@ -740,7 +762,7 @@ async function fixAllWrongValues() {
     byFile[w.locale_path].push(w.key);
   }
 
-  log(`正在清空 ${filteredWrong.length} 个错误值…`, 'info');
+  log(t('clearingLog', filteredWrong.length), 'info');
   try {
     for (const [path, keys] of Object.entries(byFile)) {
       const result = await invoke('i18n_clear_wrong_value', {
@@ -751,7 +773,7 @@ async function fixAllWrongValues() {
     }
     await runScan();
   } catch (e) {
-    log(`清空失败: ${e}`, 'err');
+    log(t('clearFailedLog', e), 'err');
   }
 }
 
@@ -759,7 +781,7 @@ async function fixAllWrongValues() {
 function log(msg, type = 'info') {
   const line = document.createElement('div');
   line.className = `log-line ${type}`;
-  const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const ts = new Date().toLocaleTimeString('en-CA', { hour12: false });
   line.textContent = `[${ts}] ${msg}`;
   const content = $('log-content');
   content.appendChild(line);
@@ -783,13 +805,13 @@ function truncate(s, n) {
 async function scanDeadKeys() {
   if (!settings.project_path) return;
   showOverlay(true);
-  log('扫描死键…', 'info');
+  log(t('scanningDeadLog'), 'info');
   try {
     deadKeys = await invoke('i18n_scan_dead_keys', { projectPath: settings.project_path });
-    log(`扫描完成 — 发现 ${deadKeys.length} 个死键`, 'ok');
+    log(t('scanDeadCompleteLog', deadKeys.length), 'ok');
     applyDeadFilter();
   } catch (e) {
-    log(`扫描死键失败: ${e}`, 'err');
+    log(t('scanDeadFailedLog', e), 'err');
   } finally {
     showOverlay(false);
   }
@@ -810,8 +832,8 @@ function renderDead() {
   badge.textContent = deadKeys.length;
   badge.classList.toggle('has-issues', deadKeys.length > 0);
   $('dead-count').textContent = items.length === deadKeys.length
-    ? `${items.length} 个`
-    : `${items.length} / ${deadKeys.length} 个`;
+    ? t('countDeadFormat', items.length)
+    : t('countDeadFilterFormat', items.length, deadKeys.length);
   $('check-all-dead').checked = false;
   updateDeleteDeadBtn();
 
@@ -834,7 +856,7 @@ function renderDead() {
 function updateDeleteDeadBtn() {
   const checked = document.querySelectorAll('.check-dead:checked').length;
   $('btn-delete-dead').disabled = checked === 0;
-  $('btn-delete-dead').textContent = checked > 0 ? `删除选中 (${checked})` : '删除选中';
+  $('btn-delete-dead').textContent = checked > 0 ? t('deleteSelectedWithCount', checked) : t('deleteSelected');
 }
 
 async function deleteSelectedDeadKeys() {
@@ -843,36 +865,36 @@ async function deleteSelectedDeadKeys() {
   if (selectedIndices.length === 0) return;
   const keys = selectedIndices.map(i => filteredDead[i].key);
 
-  if (!confirm(`将从所有 locale 文件删除 ${keys.length} 个键，并备份到 .i18n-backup/。继续？`)) return;
+  if (!confirm(t('deleteConfirm', keys.length))) return;
 
-  log(`删除 ${keys.length} 个死键…`, 'info');
+  log(t('deletingLog', keys.length), 'info');
   try {
     const result = await invoke('i18n_delete_dead_keys', { projectPath: settings.project_path, keys });
     log(result, 'ok');
     deadKeys = deadKeys.filter(k => !keys.includes(k.key));
     applyDeadFilter();
   } catch (e) {
-    log(`删除失败: ${e}`, 'err');
+    log(t('deleteFailedLog', e), 'err');
   }
 }
 
 // ─── Tab 5: Anti-patterns ─────────────────────────────────────────────────────
 const ANTIPATTERN_LABEL = {
-  chinese_fallback: '中文兜底',
-  key_leading_space: 'key 前导空格',
-  undefined_key: '未定义 key',
+  chinese_fallback: 'kindChineseFallback',
+  key_leading_space: 'kindKeyLeadingSpace',
+  undefined_key: 'kindUndefinedKey',
 };
 
 async function scanAntiPatterns() {
   if (!settings.project_path) return;
   showOverlay(true);
-  log('扫描反模式…', 'info');
+  log(t('scanningAntiPatternLog'), 'info');
   try {
     antiPatterns = await invoke('i18n_scan_antipatterns', { projectPath: settings.project_path });
-    log(`扫描完成 — 发现 ${antiPatterns.length} 处反模式`, 'ok');
+    log(t('scanAntiPatternCompleteLog', antiPatterns.length), 'ok');
     applyAntiPatternFilter();
   } catch (e) {
-    log(`扫描反模式失败: ${e}`, 'err');
+    log(t('scanAntiPatternFailedLog', e), 'err');
   } finally {
     showOverlay(false);
   }
@@ -896,14 +918,14 @@ function renderAntiPatterns() {
   badge.textContent = antiPatterns.length;
   badge.classList.toggle('has-issues', antiPatterns.length > 0);
   $('antipattern-count').textContent = items.length === antiPatterns.length
-    ? `${items.length} 处`
-    : `${items.length} / ${antiPatterns.length} 处`;
+    ? t('countAntiFormat', items.length)
+    : t('countAntiFilterFormat', items.length, antiPatterns.length);
 
   const fallbackCount = antiPatterns.filter(a => a.kind === 'chinese_fallback').length;
   $('btn-fix-antipattern').disabled = fallbackCount === 0;
   $('btn-fix-antipattern').textContent = fallbackCount > 0
-    ? `批量自动修复中文兜底 (${fallbackCount})`
-    : '批量自动修复中文兜底';
+    ? t('batchFixFormat', fallbackCount)
+    : t('fixChineseFallbacks');
 
   if (items.length === 0) {
     tbody.innerHTML = '';
@@ -913,7 +935,7 @@ function renderAntiPatterns() {
   $('antipattern-empty').classList.add('hidden');
 
   tbody.innerHTML = items.map(a => {
-    const label = ANTIPATTERN_LABEL[a.kind] || a.kind;
+    const label = t(ANTIPATTERN_LABEL[a.kind] || a.kind);
     const cls = a.kind === 'chinese_fallback' ? 'kind-warn' : '';
     return `
       <tr>
@@ -928,14 +950,14 @@ function renderAntiPatterns() {
 }
 
 async function fixChineseFallbacks() {
-  if (!confirm('将自动删除所有 t(...) || "中文" 模式的后半段（保留 t() 调用，依赖 zh-CN 顶层回退）。文件会备份到 .i18n-backup/。继续？')) return;
-  log('修复中文兜底反模式…', 'info');
+  if (!confirm(t('fixConfirm'))) return;
+  log(t('fixingAntiPatternLog'), 'info');
   try {
     const result = await invoke('i18n_fix_chinese_fallbacks', { projectPath: settings.project_path });
     log(result, 'ok');
     await scanAntiPatterns();
   } catch (e) {
-    log(`修复失败: ${e}`, 'err');
+    log(t('fixAntiPatternFailedLog', e), 'err');
   }
 }
 

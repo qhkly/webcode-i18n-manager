@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "i18n 检查工具",
+        "title": "i18n Checker",
         "width": 1100,
         "height": 720,
         "resizable": true,
