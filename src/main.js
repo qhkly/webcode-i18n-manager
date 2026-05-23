@@ -49,7 +49,26 @@ function initLangToggle() {
     window.i18n.setLang(newLang);
     updateBtn();
   });
-  window.addEventListener('i18n-change', updateBtn);
+  window.addEventListener('i18n-change', () => {
+    updateBtn();
+    // Re-render dynamic UI elements
+    applyTheme(localStorage.getItem('theme') || 'system');
+    if (scanResult) {
+      populateMissingLocaleFilter(scanResult.missing);
+      populateWrongLocaleFilter(scanResult.wrong_lang);
+      renderHardcoded();
+      renderMissing();
+      renderWrong();
+      renderDead();
+      renderAntiPatterns();
+    }
+    updateFixMissingBtn();
+    updateTranslateButtons();
+    updateTranslateWrongBtns();
+    updateDeleteDeadBtn();
+    // Re-apply arrow icon
+    $('log-arrow').textContent = $('log-panel').classList.contains('collapsed') ? t('logArrowDown') : t('logArrowUp');
+  });
 }
 
 initLangToggle();
