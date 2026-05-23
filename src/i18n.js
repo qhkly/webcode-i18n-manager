@@ -20,6 +20,10 @@
     // Locale bar
     loadedLanguages: "已加载语言：",
 
+    // Toolbar
+    scanBtn: "扫描",
+    settingsBtn: "设置",
+
     // Tabs
     tabHardcoded: "硬编码字符串",
     tabMissing: "缺失翻译",
@@ -228,6 +232,10 @@
 
     // Locale bar
     loadedLanguages: "Loaded languages:",
+
+    // Toolbar
+    scanBtn: "Scan",
+    settingsBtn: "Settings",
 
     // Tabs
     tabHardcoded: "Hardcoded Strings",
